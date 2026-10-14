@@ -1,0 +1,21 @@
+name: Check patches
+
+on: [push, pull_request]
+
+jobs:
+  patches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n build-rt-ac68u.sh && bash -n tests/dnssec-userland.sh
+      - name: Apply the patches to the upstream revision
+        run: |
+          set -euo pipefail
+          ref=$(grep -oP '^MERLIN_REF="\$\{MERLIN_REF:-\K[0-9a-f]{40}' build-rt-ac68u.sh)
+          git init -q src && cd src
+          git remote add origin https://github.com/RMerl/asuswrt-merlin.ng
+          git fetch -q --depth 1 origin "$ref"
+          git checkout -q FETCH_HEAD
+          for p in ../patches/*.patch; do git apply --whitespace=nowarn "$p"; done
+          sed -i "s/^EXTENDNO=.*/EXTENDNO=$(cat ../VERSION)/" release/src-rt/version.conf
+          git diff --stat

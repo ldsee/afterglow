@@ -1,0 +1,40 @@
+From: ldsee <21846386+ldsee@users.noreply.github.com>
+Subject: [PATCH] dnsmasq: trust the 2024 root KSK as well as the 2017 one
+
+Since 2026-10-11 the root zone is signed only with KSK-2024 (key tag 38696),
+so a resolver that only has KSK-2017 (20326) fails every DNSSEC lookup.
+Write both anchors into dnsmasq.conf, like upstream does in 3004.388.
+Digest from https://data.iana.org/root-anchors/root-anchors.xml
+---
+diff --git a/release/src/router/rc/services.c b/release/src/router/rc/services.c
+--- a/release/src/router/rc/services.c
++++ b/release/src/router/rc/services.c
+@@ -2069,6 +2069,7 @@
+ #endif
+ 	if (nvram_get_int("dnssec_enable")) {
+ 		fprintf(fp, "trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n"
++		            "trust-anchor=.,38696,8,2,683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16\n"
+ 		            "dnssec\n");
+ 
+ 		/* If NTP isn't set yet, wait until rc's ntp signals us to start validating time */
+@@ -2114,6 +2115,7 @@
+ #endif
+ 	if (nvram_get_int("dnssec_enable")) {
+ 		fprintf(fp, "trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n"
++		            "trust-anchor=.,38696,8,2,683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16\n"
+ 		            "dnssec\n");
+ 
+ 		/* If NTP isn't set yet, wait until rc's ntp signals us to start validating time */
+diff --git a/release/src/router/dnsmasq/trust-anchors.conf b/release/src/router/dnsmasq/trust-anchors.conf
+--- a/release/src/router/dnsmasq/trust-anchors.conf
++++ b/release/src/router/dnsmasq/trust-anchors.conf
+@@ -5,5 +5,9 @@
+ 
+ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
+ 
++# KSK-2024 (key tag 38696): in the root zone since 2025-01, the only signing key from the rollover of 2026-10-11 on
++# (https://data.iana.org/root-anchors/root-anchors.xml)
++trust-anchor=.,38696,8,2,683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16
+ 
+ 
++
